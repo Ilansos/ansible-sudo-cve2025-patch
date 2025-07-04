@@ -1,0 +1,117 @@
+---
+# file: sudo_vuln_patch.yml
+# Patches CVE-2025-32462 / -32463 on Debian/Ubuntu systems
+# This playbook is designed to patch vulnerable sudo versions on Debian/Ubuntu systems.
+# Run with: ansible-playbook -i inventory sudo_vuln_patch.yml
+
+- name: Patch vulnerable sudo versions
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars_prompt:
+    - name: confirm_patch
+      prompt: |
+        One or more hosts may have a vulnerable sudo build.
+        Do you want to upgrade them automatically? (yes/no)
+      private: false          # show the answer on-screen
+      default: "no"
+
+  vars:
+    # Per-distribution minimum “safe” package versions
+    safe_versions:
+      # Ubuntu
+      "Ubuntu-24.10": "1.9.15p5-3ubuntu5.24.10.1"
+      "Ubuntu-24.04": "1.9.15p5-3ubuntu5.24.04.1"
+      "Ubuntu-22.04": "1.9.9-1ubuntu2.5"
+      # Debian
+      "Debian-12": "1.9.13p3-1+deb12u2"
+      "Debian-11": "1.9.5p2-3+deb11u2"
+  
+  tasks:
+    - name: Fail if answer is not “yes” or “no”
+      ansible.builtin.fail:
+        msg: "Please answer exactly yes or no"
+      when: confirm_patch | lower not in ['yes', 'no']
+
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+        manager: auto
+    
+    - name: Build lookup key for current host
+      set_fact:
+        distro_key: "{{ ansible_distribution ~ '-' ~ ansible_distribution_version }}"
+    
+    - name: Define minimum fixed version for this distro
+      set_fact:
+        min_safe_version: "{{ safe_versions[distro_key] | default('9999') }}"
+
+    - name: Capture current sudo version
+      set_fact:
+        sudo_current: "{{ ansible_facts.packages['sudo'][0].version | default('0') }}"
+
+    - name: Is sudo older than the minimum fixed build? (dpkg)
+      command: >
+        dpkg --compare-versions "{{ sudo_current }}" lt "{{ min_safe_version }}"
+      register: dpkg_cmp
+      changed_when: false
+      failed_when: false
+      when: ansible_os_family == 'Debian'
+
+    - set_fact:
+        sudo_vulnerable: "{{ dpkg_cmp.rc == 0 }}"
+      when: ansible_os_family == 'Debian'
+
+    - name: Show status
+      ansible.builtin.debug:
+        msg: "Host {{ inventory_hostname }} – sudo {{ sudo_current }} ⇒ {{ '⚠ vulnerable' if sudo_vulnerable else '✅ already fixed' }}"
+    
+    - name: Update apt cache (Debian family)
+      ansible.builtin.apt:
+        update_cache: yes
+      when:
+        - sudo_vulnerable
+        - ansible_os_family == 'Debian'
+        - confirm_patch | lower == 'yes' 
+
+    - name: Upgrade sudo on Debian/Ubuntu
+      ansible.builtin.apt:
+        name: sudo
+        state: latest
+      register: sudo_upgrade 
+      when:
+        - sudo_vulnerable
+        - ansible_os_family == 'Debian'
+        - confirm_patch | lower == 'yes' 
+
+
+    # Only run these if the previous task actually changed something
+    - block:
+      # 1. Refresh facts so ansible_facts.packages is up-to-date
+      - name: Refresh package facts
+        ansible.builtin.package_facts:
+          manager: auto
+
+      # 2. Capture the new version
+      - name: Capture new sudo version
+        set_fact:
+          sudo_new_current: >-
+            {{ ansible_facts.packages['sudo'][0].version | default('0') }}
+
+      # 3. Compare again
+      - name: Is new sudo older than the minimum fixed build? (dpkg)
+        command: >
+          dpkg --compare-versions "{{ sudo_new_current }}" lt "{{ min_safe_version }}"
+        register: dpkg_cmp_after
+        changed_when: false
+        failed_when: false
+
+      # 4. Report final status
+      - name: Show new status
+        ansible.builtin.debug:
+          msg: >-
+            Host {{ inventory_hostname }} – sudo {{ sudo_new_current }}
+            ⇒ {{ '⚠ still vulnerable' if dpkg_cmp_after.rc == 0 else '✅ patched' }}
+      when:
+        - sudo_upgrade is defined
+        - sudo_upgrade.changed    
