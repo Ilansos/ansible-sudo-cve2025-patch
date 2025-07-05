@@ -1,7 +1,5 @@
 # Sudo CVE‑2025‑32462 / CVE‑2025‑32463 Auto‑Remediation Playbook
 
-![Ansible Logo](https://raw.githubusercontent.com/ansible/ansible/master/docs/docsite/_static/logo.png)
-
 ## 📌 Overview
 
 Two recently disclosed vulnerabilities in **sudo** allow privilege‑escalation attacks on most Linux distributions:
