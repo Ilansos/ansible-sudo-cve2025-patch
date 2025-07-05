@@ -6,8 +6,8 @@
 
 Two recently disclosed vulnerabilities in **sudo** allow privilege‑escalation attacks on most Linux distributions:
 
-* **CVE‑2025‑32462** – a logic flaw in the *host* option lets authorised users run commands on hosts that were **not** intended for them ([nvd.nist.gov](https://nvd.nist.gov/vuln/detail/CVE-2025-32462?utm_source=chatgpt.com)).  Ubuntu rates this issue as *Low* (CVSS 2.8) ([ubuntu.com](https://ubuntu.com/security/CVE-2025-32462?utm_source=chatgpt.com)).
-* **CVE‑2025‑32463** – a path‑traversal weakness when **sudo** is invoked with `--chroot` lets local users gain **root** by loading an attacker‑controlled `nsswitch.conf`; the impact is *Critical* (CVSS 9.3) ([nvd.nist.gov](https://nvd.nist.gov/vuln/detail/CVE-2025-32463?utm_source=chatgpt.com), [ubuntu.com](https://ubuntu.com/security/CVE-2025-32463?utm_source=chatgpt.com)).
+* **CVE‑2025‑32462** – a logic flaw in the *host* option lets authorised users run commands on hosts that were **not** intended for them ([nvd.nist.gov](https://nvd.nist.gov/vuln/detail/CVE-2025-32462)).  Ubuntu rates this issue as *Low* (CVSS 2.8) ([ubuntu.com](https://ubuntu.com/security/CVE-2025-32462)).
+* **CVE‑2025‑32463** – a path‑traversal weakness when **sudo** is invoked with `--chroot` lets local users gain **root** by loading an attacker‑controlled `nsswitch.conf`; the impact is *Critical* (CVSS 9.3) ([nvd.nist.gov](https://nvd.nist.gov/vuln/detail/CVE-2025-32463), [ubuntu.com](https://ubuntu.com/security/CVE-2025-32463)).
 
 Left unpatched, CVE‑2025‑32463 in particular offers adversaries a straightforward route from *any* local account to **root**—a nightmare in large estates where thousands of machines share the same golden image.
 
