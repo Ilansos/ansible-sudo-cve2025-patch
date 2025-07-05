@@ -71,7 +71,7 @@ If you manage secrets with **Ansible Vault** or **Doppler**, point the lookup to
 ### 5 ‑ Run the playbook
 
 ```bash
-ansible-playbook -i sudo_vuln_patch.yml
+ansible-playbook sudo_vuln_patch.yml
 ```
 
 At the start, the playbook prompts you to confirm whether it should automatically upgrade any hosts it finds with vulnerable sudo versions.
